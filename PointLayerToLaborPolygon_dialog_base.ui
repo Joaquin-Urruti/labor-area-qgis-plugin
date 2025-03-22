@@ -22,20 +22,17 @@
      <height>32</height>
     </rect>
    </property>
-   <property name="orientation">
-    <enum>Qt::Orientation::Horizontal</enum>
-   </property>
    <property name="standardButtons">
-    <set>QDialogButtonBox::StandardButton::Cancel|QDialogButtonBox::StandardButton::Ok</set>
+    <set>QDialogButtonBox::NoButton</set>
    </property>
   </widget>
   <widget class="QComboBox" name="input_layer">
    <property name="geometry">
     <rect>
      <x>20</x>
-     <y>31</y>
+     <y>40</y>
      <width>471</width>
-     <height>41</height>
+     <height>21</height>
     </rect>
    </property>
   </widget>
