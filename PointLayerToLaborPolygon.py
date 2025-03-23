@@ -23,8 +23,9 @@
 """
 from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication
 from qgis.PyQt.QtGui import QIcon
-from qgis.PyQt.QtWidgets import QAction
+from qgis.PyQt.QtWidgets import QAction, QFileDialog
 from qgis.core import QgsProject, QgsMapLayer, QgsWkbTypes
+from qgis.utils import *
 
 # Initialize Qt resources from file resources.py
 from .resources import *
@@ -181,30 +182,29 @@ class PointLayerToLaborPolygon:
             self.iface.removeToolBarIcon(action)
 
 
+    def select_input_folder(self):
+        folder = QFileDialog.getExistingDirectory(None, "Select directory ", "", QFileDialog.DontResolveSymlinks)
+        self.dlg.lineEdit.setText(folder)
+
+
     def run(self):
         """Run method that performs all the real work"""
-
-        # Create the dialog with elements (after translation) and keep reference
-        # Only create GUI ONCE in callback, so that it will only load when the plugin is started
         if self.first_start == True:
             self.first_start = False
             self.dlg = PointLayerToLaborPolygonDialog()
-
-
-
-
-        layers = [layer for layer in QgsProject.instance().mapLayers().values()]
+            self.dlg.input_layer.clear()
+            self.dlg.output_layer.clear()
+            self.dlg.pushButton.clicked.connect(self.select_input_folder)
+        
+        # Obtener solo las capas de puntos
+        layers = QgsProject.instance().mapLayers().values()
         point_layers = []
         for layer in layers:
-            # Verificar si es una capa vectorial y si es de tipo punto
             if layer.type() == QgsMapLayer.VectorLayer and layer.geometryType() == QgsWkbTypes.PointGeometry:
                 point_layers.append(layer.name())
         
         # Agregar las capas de puntos al combo box
         self.dlg.input_layer.addItems(point_layers)
-
-
-
 
         # show the dialog
         self.dlg.show()
@@ -212,6 +212,5 @@ class PointLayerToLaborPolygon:
         result = self.dlg.exec_()
         # See if OK was pressed
         if result:
-            # Do something useful here - delete the line containing pass and
-            # substitute with your code.
+            # Do something useful here
             pass
