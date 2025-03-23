@@ -31,8 +31,18 @@ from qgis.utils import *
 from .resources import *
 # Import the code for the dialog
 from .PointLayerToLaborPolygon_dialog import PointLayerToLaborPolygonDialog
-import os.path
+import os
 from qgis.core import *
+
+# Import processing module, initiate it and import algorithms
+import processing
+from processing.core.Processing import Processing
+from qgis import processing
+from qgis.core import QgsProcessing, QgsCoordinateReferenceSystem
+
+Processing.initialize()
+registry = QgsApplication.processingRegistry()
+
 
 class PointLayerToLaborPolygon:
     """QGIS Plugin Implementation."""
@@ -192,19 +202,23 @@ class PointLayerToLaborPolygon:
         if self.first_start == True:
             self.first_start = False
             self.dlg = PointLayerToLaborPolygonDialog()
-            self.dlg.input_layer.clear()
-            self.dlg.output_layer.clear()
+            self.dlg.comboBox.clear()
+            # self.dlg.output_layer.clear()
             self.dlg.pushButton.clicked.connect(self.select_input_folder)
         
+        while self.dlg.comboBox.count() > 0:
+            self.dlg.comboBox.removeItem(0)
+
+
         # Obtener solo las capas de puntos
-        layers = QgsProject.instance().mapLayers().values()
+        layers = list(QgsProject.instance().mapLayers().values())
         point_layers = []
         for layer in layers:
             if layer.type() == QgsMapLayer.VectorLayer and layer.geometryType() == QgsWkbTypes.PointGeometry:
                 point_layers.append(layer.name())
         
         # Agregar las capas de puntos al combo box
-        self.dlg.input_layer.addItems(point_layers)
+        self.dlg.comboBox.addItems(point_layers)
 
         # show the dialog
         self.dlg.show()
@@ -212,5 +226,63 @@ class PointLayerToLaborPolygon:
         result = self.dlg.exec_()
         # See if OK was pressed
         if result:
-            # Do something useful here
-            pass
+
+            selectedLayerIndex = self.dlg.comboBox.currentIndex()
+            input_layer = point_layers[selectedLayerIndex]
+            print(f'Input layer{input_layer}')
+            output_file = os.path.join(self.dlg.lineEdit.text(), 'area_labor.shp')
+            distance = self.dlg.labor_width.value() / 2
+            extra_distance = self.dlg.extra_distance.value()
+            simplification = self.dlg.simplification_level.value()
+            target_crs = QgsCoordinateReferenceSystem()
+            target_crs.createFromString("EPSG:3857")
+
+            reprojected = processing.run(
+                "qgis:reprojectlayer",
+                {
+                    'INPUT': input_layer,
+                    'TARGET_CRS': target_crs,
+                    'OUTPUT': 'memory:'
+                }
+            )['OUTPUT']
+
+            positive_buffer = processing.run(
+                "qgis:buffer",
+                {
+                    'INPUT': reprojected,
+                    'DISTANCE': distance + extra_distance,
+                    'SEGMENTS': 5,
+                    'END_CAP_STYLE': 0,
+                    'JOIN_STYLE': 0,
+                    'MITER_LIMIT': 2,
+                    'DISSOLVE': True,
+                    'OUTPUT': 'memory:'
+                }
+            )['OUTPUT']
+
+            negative_buffer = processing.run(
+                "qgis:buffer",
+                {
+                    'INPUT': positive_buffer,
+                    'DISTANCE': - extra_distance,
+                    'SEGMENTS': 5,
+                    'END_CAP_STYLE': 0,
+                    'JOIN_STYLE': 0,
+                    'MITER_LIMIT': 2,
+                    'DISSOLVE': True,
+                    'OUTPUT': 'memory:'
+                }
+            )['OUTPUT']
+
+            result = processing.run(
+                "native:simplifygeometries", 
+                {
+                    'INPUT': negative_buffer,
+                    'METHOD': 0,
+                    'TOLERANCE': simplification,
+                    'OUTPUT': output_file
+                    }
+            )['OUTPUT']
+
+            result_layer = QgsVectorLayer(output_file, "labor_area", "ogr")
+            QgsProject.instance().addMapLayer(result_layer)

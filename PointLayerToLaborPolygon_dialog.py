@@ -18,14 +18,14 @@ class PointLayerToLaborPolygonDialog(QDialog, FORM_CLASS):
         PointLayerToLaborPolygonDialogBase.resize(532, 419)
         self.button_box = QtWidgets.QDialogButtonBox(PointLayerToLaborPolygonDialogBase)
         self.button_box.setGeometry(QtCore.QRect(340, 380, 161, 32))
-        self.button_box.setStandardButtons(QtWidgets.QDialogButtonBox.NoButton)
+        self.button_box.setStandardButtons(QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel)
         self.button_box.setObjectName("button_box")
-        self.input_layer = QtWidgets.QComboBox(PointLayerToLaborPolygonDialogBase)
-        self.input_layer.setGeometry(QtCore.QRect(20, 40, 471, 21))
-        self.input_layer.setObjectName("input_layer")
-        self.output_layer = QtWidgets.QLineEdit(PointLayerToLaborPolygonDialogBase)
-        self.output_layer.setGeometry(QtCore.QRect(30, 330, 351, 31))
-        self.output_layer.setObjectName("output_layer")
+        self.comboBox = QtWidgets.QComboBox(PointLayerToLaborPolygonDialogBase)
+        self.comboBox.setGeometry(QtCore.QRect(20, 40, 471, 21))
+        self.comboBox.setObjectName("input_layer")
+        self.lineEdit = QtWidgets.QLineEdit(PointLayerToLaborPolygonDialogBase)
+        self.lineEdit.setGeometry(QtCore.QRect(30, 330, 351, 31))
+        self.lineEdit.setObjectName("output_layer")
         self.pushButton = QtWidgets.QPushButton(PointLayerToLaborPolygonDialogBase)
         self.pushButton.setGeometry(QtCore.QRect(400, 330, 100, 32))
         self.pushButton.setObjectName("pushButton")
@@ -55,8 +55,8 @@ class PointLayerToLaborPolygonDialog(QDialog, FORM_CLASS):
         self.simplification_level.setObjectName("simplification_level")
 
         self.retranslateUi(PointLayerToLaborPolygonDialogBase)
-        self.button_box.accepted.connect(PointLayerToLaborPolygonDialogBase.accept) # type: ignore
-        self.button_box.rejected.connect(PointLayerToLaborPolygonDialogBase.reject) # type: ignore
+        self.button_box.accepted.connect(PointLayerToLaborPolygonDialogBase.accept)
+        self.button_box.rejected.connect(PointLayerToLaborPolygonDialogBase.reject)
         QtCore.QMetaObject.connectSlotsByName(PointLayerToLaborPolygonDialogBase)
 
     def retranslateUi(self, PointLayerToLaborPolygonDialogBase):
