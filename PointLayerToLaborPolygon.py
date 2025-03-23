@@ -192,9 +192,19 @@ class PointLayerToLaborPolygon:
             self.iface.removeToolBarIcon(action)
 
 
-    def select_input_folder(self):
-        folder = QFileDialog.getExistingDirectory(None, "Select directory ", "", QFileDialog.DontResolveSymlinks)
-        self.dlg.lineEdit.setText(folder)
+    def select_output_name(self):
+        file_path, _ = QFileDialog.getSaveFileName(
+            None,
+            "Guardar archivo como",
+            "",
+            "Archivos Shape (*.shp);;Todos los archivos (*.*)"
+        )
+        if file_path:
+            # Asegurarse de que el archivo termine en .shp
+            if not file_path.lower().endswith('.shp'):
+                file_path += '.shp'
+            self.dlg.lineEdit.setText(file_path)
+
 
 
     def run(self):
@@ -204,7 +214,13 @@ class PointLayerToLaborPolygon:
             self.dlg = PointLayerToLaborPolygonDialog()
             self.dlg.comboBox.clear()
             # self.dlg.output_layer.clear()
-            self.dlg.pushButton.clicked.connect(self.select_input_folder)
+
+            # Set default values for parameters
+            self.dlg.labor_width.setValue(9.14)
+            self.dlg.extra_distance.setValue(2)
+            self.dlg.simplification_level.setValue(2)
+
+            self.dlg.pushButton.clicked.connect(self.select_output_name)
         
         while self.dlg.comboBox.count() > 0:
             self.dlg.comboBox.removeItem(0)
@@ -229,8 +245,7 @@ class PointLayerToLaborPolygon:
 
             selectedLayerIndex = self.dlg.comboBox.currentIndex()
             input_layer = point_layers[selectedLayerIndex]
-            print(f'Input layer{input_layer}')
-            output_file = os.path.join(self.dlg.lineEdit.text(), 'area_labor.shp')
+            output_file = self.dlg.lineEdit.text()
             distance = self.dlg.labor_width.value() / 2
             extra_distance = self.dlg.extra_distance.value()
             simplification = self.dlg.simplification_level.value()
@@ -274,15 +289,41 @@ class PointLayerToLaborPolygon:
                 }
             )['OUTPUT']
 
-            result = processing.run(
+            simplified = processing.run(
                 "native:simplifygeometries", 
                 {
                     'INPUT': negative_buffer,
                     'METHOD': 0,
                     'TOLERANCE': simplification,
-                    'OUTPUT': output_file
+                    'OUTPUT': 'memory:'
                     }
             )['OUTPUT']
 
-            result_layer = QgsVectorLayer(output_file, "labor_area", "ogr")
+            # Remover todos los campos y agregar el campo de hectáreas
+            result = processing.run(
+                "qgis:deletecolumn",
+                {
+                    'INPUT': simplified,
+                    'COLUMN': [field.name() for field in simplified.fields()],
+                    'OUTPUT': 'memory:'
+                }
+            )['OUTPUT']
+
+            output_layer_name = os.path.basename(output_file)
+
+            # Calcular área en hectáreas
+            result = processing.run(
+                "qgis:fieldcalculator",
+                {
+                    'INPUT': result,
+                    'FIELD_NAME': 'has',
+                    'FIELD_TYPE': 0,  # Decimal (double)
+                    'FIELD_LENGTH': 10,
+                    'FIELD_PRECISION': 2,
+                    'FORMULA': '$area/10000',
+                    'OUTPUT': output_file
+                }
+            )['OUTPUT']            
+
+            result_layer = QgsVectorLayer(output_file, f"{output_layer_name}", "ogr")
             QgsProject.instance().addMapLayer(result_layer)
