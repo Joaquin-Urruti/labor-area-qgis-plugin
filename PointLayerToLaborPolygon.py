@@ -24,13 +24,14 @@
 from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction
+from qgis.core import QgsProject, QgsMapLayer, QgsWkbTypes
 
 # Initialize Qt resources from file resources.py
 from .resources import *
 # Import the code for the dialog
 from .PointLayerToLaborPolygon_dialog import PointLayerToLaborPolygonDialog
 import os.path
-
+from qgis.core import *
 
 class PointLayerToLaborPolygon:
     """QGIS Plugin Implementation."""
@@ -188,6 +189,22 @@ class PointLayerToLaborPolygon:
         if self.first_start == True:
             self.first_start = False
             self.dlg = PointLayerToLaborPolygonDialog()
+
+
+
+
+        layers = [layer for layer in QgsProject.instance().mapLayers().values()]
+        point_layers = []
+        for layer in layers:
+            # Verificar si es una capa vectorial y si es de tipo punto
+            if layer.type() == QgsMapLayer.VectorLayer and layer.geometryType() == QgsWkbTypes.PointGeometry:
+                point_layers.append(layer.name())
+        
+        # Agregar las capas de puntos al combo box
+        self.dlg.input_layer.addItems(point_layers)
+
+
+
 
         # show the dialog
         self.dlg.show()
